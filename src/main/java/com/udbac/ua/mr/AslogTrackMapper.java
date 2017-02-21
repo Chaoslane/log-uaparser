@@ -21,8 +21,9 @@ import java.util.Map;
 /**
  * Created by root on 2017/2/15.
  */
-public class AslogTrackMapper extends Mapper<LongWritable, Text, Text,NullWritable > {
+public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Text > {
     private static String[] vec;
+    private static Map<String, String> ua_hash = new HashMap<>();
 
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
@@ -38,12 +39,24 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, Text,NullWritab
             return;
         }
         String daytime = tokens[0].substring(0, 19).replaceAll("[\\-:]", "").replace("T"," ");
-        String uaid = UAHashUtils.hashUA(tokens[8].replaceAll("[ ;]",""));
+        //处理UA串，并进行hash
+        String uaStr = tokens[8];
+        String parsedUA = null;
+        String uaid = null;
+        if (ua_hash.containsKey(uaStr)) {
+            uaid = ua_hash.get(uaStr);
+        }
+        else{
+            parsedUA = UAHashUtils.handleUA(uaStr);
+            uaid = UAHashUtils.hashUA(parsedUA);
+            ua_hash.put(uaStr, uaid);
+        }
+        //取得wxid并进行hash得到UDBACID
         String wxid = getWxid(tokens[5] + "," + tokens[6], tokens[10], tokens[2], tokens[8]);
         String auid = UAHashUtils.hashUA(wxid);
 
         context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
-        context.write(new Text( daytime+ "\t" + uaid + "\t" + auid),NullWritable.get());
+        context.write(NullWritable.get(),new Text( daytime+ "\t" + uaid + "\t" + auid));
     }
 
     private static String getWxid(String aurl_aarg, String auid, String addr, String uagn) {
@@ -98,8 +111,8 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, Text,NullWritab
             LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);
             TextOutputFormat.setOutputCompressorClass(job1, GzipCodec.class);
 
-            job1.setMapOutputKeyClass(Text.class);
-            job1.setMapOutputValueClass(NullWritable.class);
+            job1.setMapOutputKeyClass(NullWritable.class);
+            job1.setMapOutputValueClass(Text.class);
 
             if (job1.waitForCompletion(true)) {
                 System.out.println((System.currentTimeMillis() - starttime) / 1000);

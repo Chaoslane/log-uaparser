@@ -41,7 +41,8 @@ public class AslogUnique {
                 return;
             }
             uaSet.add(uaHash);
-            context.write(new Text(uaHash + "\t" + UAHashUtils.handleUA(uaString)), NullWritable.get());
+            String parsedUA = UAHashUtils.handleUA(uaString);
+            context.write(new Text(UAHashUtils.hashUA(parsedUA) + "\t" + parsedUA ), NullWritable.get());
         }
     }
 
@@ -56,8 +57,7 @@ public class AslogUnique {
         long starttime = System.currentTimeMillis();
         try {
             Configuration conf = new Configuration();
-//            conf.set("io.compression.codecs", "io.sensesecure.hadoop.xz.XZCodec");
-            conf.set("io.compression.codecs", "org.tukaani.xz.XZ");
+            conf.set("io.compression.codecs", "io.sensesecure.hadoop.xz.XZCodec");
 
             String inputArgs[] = new GenericOptionsParser(conf, args).getRemainingArgs();
             if (inputArgs.length != 2) {
