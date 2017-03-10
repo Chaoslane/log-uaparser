@@ -28,7 +28,7 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Te
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
         //读取日志中的指定字符串进行hash 有序
-        vec = new String[]{"m2", "m1c", "m1a", "m9b", "m9", "m2a", "uuid",
+        vec = new String[]{"m2", "m1c", "m1a", "m9b", "m9", "m2a", "uid",
                 "m1", "m3", "m1b", "m9c", "mo"};
     }
 
@@ -38,7 +38,7 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Te
         if (tokens.length != 12) {
             return;
         }
-        String daytime = tokens[0].substring(0, 19).replaceAll("[\\-:]", "").replace("T"," ");
+        String daytime = tokens[0].substring(0, 19).replace("T"," ");
         //处理UA串，并进行hash
         String uaStr = tokens[8];
         String parsedUA = null;
@@ -53,10 +53,10 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Te
         }
         //取得wxid并进行hash得到UDBACID
         String wxid = getWxid(tokens[5] + "," + tokens[6], tokens[10], tokens[2], tokens[8]);
-        String auid = UAHashUtils.hashUA(wxid);
+        String wxided = UAHashUtils.hashUA(wxid);
 
         context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
-        context.write(NullWritable.get(),new Text( daytime+ "\t" + uaid + "\t" + auid));
+        context.write(NullWritable.get(),new Text( wxided + "\t" + daytime +"\t"+ uaid));
     }
 
     private static String getWxid(String aurl_aarg, String auid, String addr, String uagn) {
@@ -103,7 +103,7 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Te
             String inputPath = inputArgs[0];
             String outputPath = inputArgs[1];
 
-            Job job1 = Job.getInstance(conf, "TimeUA");
+            Job job1 = Job.getInstance(conf, "TrackUA");
             job1.setJarByClass(AslogTrackMapper.class);
             job1.setMapperClass(AslogTrackMapper.class);
             TextInputFormat.addInputPath(job1, new Path(inputPath));
@@ -113,6 +113,8 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Te
 
             job1.setMapOutputKeyClass(NullWritable.class);
             job1.setMapOutputValueClass(Text.class);
+
+            job1.setNumReduceTasks(0);
 
             if (job1.waitForCompletion(true)) {
                 System.out.println((System.currentTimeMillis() - starttime) / 1000);

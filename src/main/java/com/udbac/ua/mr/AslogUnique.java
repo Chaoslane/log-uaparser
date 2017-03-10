@@ -16,7 +16,6 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.util.HashSet;
 import java.util.Set;
 
