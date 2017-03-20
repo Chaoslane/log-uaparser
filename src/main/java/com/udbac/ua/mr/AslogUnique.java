@@ -10,14 +10,13 @@ import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Created by root on 2017/2/14.
@@ -25,8 +24,6 @@ import java.util.Set;
 public class AslogUnique {
 
     public static class AslogUniqueMapper extends Mapper<LongWritable, Text, Text, NullWritable> {
-        private static Set<String> uaSet = new HashSet<>();
-
         @Override
         protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
@@ -35,20 +32,16 @@ public class AslogUnique {
                 return;
             }
             String uaString = tokens[8];
-            String uaHash = UAHashUtils.hashUA(uaString);
-            if (uaSet.contains(uaHash)) {
-                return;
-            }
-            uaSet.add(uaHash);
-            String parsedUA = UAHashUtils.handleUA(uaString);
-            context.write(new Text(UAHashUtils.hashUA(parsedUA) + "\t" + parsedUA ), NullWritable.get());
+            context.write(new Text(uaString),NullWritable.get());
         }
     }
 
     public static class AslogUniqueReduce extends Reducer<Text, NullWritable, Text, NullWritable> {
         @Override
         protected void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
-            context.write(key, NullWritable.get());
+            String uaString = key.toString();
+            String parsedUA = UAHashUtils.handleUA(uaString);
+            context.write(new Text(UAHashUtils.hashUA(parsedUA) + "\t" + parsedUA ), NullWritable.get());
         }
     }
 
@@ -70,6 +63,7 @@ public class AslogUnique {
             job1.setJarByClass(AslogUnique.class);
             job1.setMapperClass(AslogUniqueMapper.class);
             job1.setReducerClass(AslogUniqueReduce.class);
+            FileInputFormat.setInputPathFilter(job1, RegexFilter.class);
             TextInputFormat.addInputPath(job1, new Path(inputPath));
             TextOutputFormat.setOutputPath(job1, new Path(outputPath));
             LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);
