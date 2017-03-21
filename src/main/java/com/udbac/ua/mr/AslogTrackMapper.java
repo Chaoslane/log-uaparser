@@ -21,7 +21,7 @@ import java.util.Map;
 /**
  * Created by root on 2017/2/15.
  */
-public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Text > {
+public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, Text> {
     private static String[] vec;
     private static Map<String, String> ua_hash = new HashMap<>();
 
@@ -38,15 +38,14 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Te
         if (tokens.length != 12) {
             return;
         }
-        String daytime = tokens[0].substring(0, 19).replace("T"," ");
+        String daytime = tokens[0].substring(0, 19).replace("T", " ");
         //处理UA串，并进行hash
         String uaStr = tokens[8];
         String parsedUA = null;
         String uaid = null;
         if (ua_hash.containsKey(uaStr)) {
             uaid = ua_hash.get(uaStr);
-        }
-        else{
+        } else {
             parsedUA = UAHashUtils.handleUA(uaStr);
             uaid = UAHashUtils.hashUA(parsedUA);
             ua_hash.put(uaStr, uaid);
@@ -56,7 +55,7 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Te
         String wxided = UAHashUtils.hashUA(wxid);
 
         context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
-        context.write(NullWritable.get(),new Text( wxided + "\t" + daytime +"\t"+ uaid));
+        context.write(NullWritable.get(), new Text(wxided + "\t" + daytime + "\t" + uaid));
     }
 
     private static String getWxid(String aurl_aarg, String auid, String addr, String uagn) {
@@ -90,42 +89,39 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable,Te
         return wxid;
     }
 
-    public static void main(String[] args) {
-        long starttime = System.currentTimeMillis();
-        try {
-            Configuration conf = new Configuration();
-            conf.set("io.compression.codecs", "io.sensesecure.hadoop.xz.XZCodec");
-            String inputArgs[] = new GenericOptionsParser(conf, args).getRemainingArgs();
-            if (inputArgs.length != 2) {
-                System.err.println("\"Usage:<inputPath> <outputPath>/n\"");
-                System.exit(2);
-            }
-            String inputPath = inputArgs[0];
-            String outputPath = inputArgs[1];
+    public static void main(String[] args) throws InterruptedException, IOException, ClassNotFoundException {
+        Configuration conf = new Configuration();
+        conf.set("io.compression.codecs", "io.sensesecure.hadoop.xz.XZCodec");
+        String inputArgs[] = new GenericOptionsParser(conf, args).getRemainingArgs();
+        if (inputArgs.length != 2) {
+            System.err.println("\"Usage:<inputPath> <outputPath>/n\"");
+            System.exit(2);
+        }
+        String inputPath = inputArgs[0];
+        String outputPath = inputArgs[1];
 
-            Job job1 = Job.getInstance(conf, "TrackUA");
-            job1.setJarByClass(AslogTrackMapper.class);
-            job1.setMapperClass(AslogTrackMapper.class);
-            TextInputFormat.addInputPath(job1, new Path(inputPath));
-            TextOutputFormat.setOutputPath(job1, new Path(outputPath));
-            LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);
-            TextOutputFormat.setOutputCompressorClass(job1, GzipCodec.class);
+        Job job1 = Job.getInstance(conf, "TrackUA");
+        job1.setJarByClass(AslogTrackMapper.class);
+        job1.setMapperClass(AslogTrackMapper.class);
+        TextInputFormat.addInputPath(job1, new Path(inputPath));
+        TextOutputFormat.setOutputPath(job1, new Path(outputPath));
+        LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);
+        TextOutputFormat.setOutputCompressorClass(job1, GzipCodec.class);
 
-            job1.setMapOutputKeyClass(NullWritable.class);
-            job1.setMapOutputValueClass(Text.class);
+        job1.setMapOutputKeyClass(NullWritable.class);
+        job1.setMapOutputValueClass(Text.class);
 
-            job1.setNumReduceTasks(0);
+        job1.setNumReduceTasks(0);
 
-            if (job1.waitForCompletion(true)) {
-                System.out.println((System.currentTimeMillis() - starttime) / 1000);
-                System.out.println("-----alllines count-----:" +
-                        job1.getCounters().findCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).getValue());
-            } else {
-                System.exit(1);
-            }
-        } catch (IOException | InterruptedException | ClassNotFoundException e) {
-            e.printStackTrace();
-            throw new RuntimeException("*****job failed*****");
+        if (job1.waitForCompletion(true)) {
+            System.out.println("-----job succeed-----");
+            long costTime = (job1.getFinishTime() - job1.getStartTime()) / 1000;
+            long linesum = job1.getCounters().findCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).getValue();
+            System.out.println(
+                    linesum + " lines take:" + costTime + "s " + linesum / costTime + " line/s");
+        } else {
+            System.out.println("*****job failed*****");
+            System.exit(1);
         }
     }
 }

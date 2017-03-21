@@ -14,13 +14,22 @@ import java.util.regex.Pattern;
  * Created by root on 2017/3/17.
  */
 public class RegexFilter extends Configured implements PathFilter {
-    Pattern pattern;
-    Configuration conf;
-    FileSystem fs;
+
+    private Pattern pattern;
+    private Configuration conf;
+    private FileSystem fs;
 
     @Override
     public boolean accept(Path path) {
         try {
+            this.conf = getConf();
+            if (null != conf) {
+                fs = FileSystem.get(conf);
+                pattern = Pattern.compile(conf.get("filename.pattern"));
+            }else {
+                System.out.println("get conf is null");
+                return false;
+            }
             if (fs.isDirectory(path)) {
                 return true;
             } else {
@@ -32,20 +41,13 @@ public class RegexFilter extends Configured implements PathFilter {
         } catch (IOException e) {
             e.printStackTrace();
             return false;
-        }
-
-    }
-
-    @Override
-    public void setConf(Configuration conf) {
-        this.conf = conf;
-        if (conf != null) {
+        }finally {
             try {
-                fs = FileSystem.get(conf);
-                pattern = Pattern.compile(conf.get("filename.pattern"));
+                fs.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
+
 }

@@ -32,7 +32,7 @@ public class AslogUnique {
                 return;
             }
             String uaString = tokens[8];
-            context.write(new Text(uaString),NullWritable.get());
+            context.write(new Text(uaString), NullWritable.get());
         }
     }
 
@@ -41,47 +41,45 @@ public class AslogUnique {
         protected void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
             String uaString = key.toString();
             String parsedUA = UAHashUtils.handleUA(uaString);
-            context.write(new Text(UAHashUtils.hashUA(parsedUA) + "\t" + parsedUA ), NullWritable.get());
+            context.write(new Text(UAHashUtils.hashUA(parsedUA) + "\t" + parsedUA), NullWritable.get());
         }
     }
 
-    public static void main(String[] args) {
-        long starttime = System.currentTimeMillis();
-        try {
-            Configuration conf = new Configuration();
-            conf.set("io.compression.codecs", "io.sensesecure.hadoop.xz.XZCodec");
+    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+        Configuration conf = new Configuration();
+        conf.set("io.compression.codecs", "io.sensesecure.hadoop.xz.XZCodec");
 
-            String inputArgs[] = new GenericOptionsParser(conf, args).getRemainingArgs();
-            if (inputArgs.length != 2) {
-                System.err.println("\"Usage:<inputPath> <ouputPath>/n\"");
-                System.exit(2);
-            }
-            String inputPath = inputArgs[0];
-            String outputPath = inputArgs[1];
-
-            Job job1 = Job.getInstance(conf, "UniqueUA");
-            job1.setJarByClass(AslogUnique.class);
-            job1.setMapperClass(AslogUniqueMapper.class);
-            job1.setReducerClass(AslogUniqueReduce.class);
-            FileInputFormat.setInputPathFilter(job1, RegexFilter.class);
-            TextInputFormat.addInputPath(job1, new Path(inputPath));
-            TextOutputFormat.setOutputPath(job1, new Path(outputPath));
-            LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);
-            TextOutputFormat.setOutputCompressorClass(job1, GzipCodec.class);
-
-            job1.setMapOutputKeyClass(Text.class);
-            job1.setMapOutputValueClass(NullWritable.class);
-
-            if (job1.waitForCompletion(true)) {
-                System.out.println((System.currentTimeMillis() - starttime) / 1000);
-                System.out.println("-----alllines count-----:" +
-                        job1.getCounters().findCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).getValue());
-            } else {
-                System.exit(1);
-            }
-        } catch (IOException | InterruptedException | ClassNotFoundException e) {
-            e.printStackTrace();
-            throw new RuntimeException("*****job failed*****");
+        String inputArgs[] = new GenericOptionsParser(conf, args).getRemainingArgs();
+        if (inputArgs.length != 2) {
+            System.err.println("\"Usage:<inputPath> <ouputPath>/n\"");
+            System.exit(2);
         }
+        String inputPath = inputArgs[0];
+        String outputPath = inputArgs[1];
+
+        Job job1 = Job.getInstance(conf, "UniqueUA");
+        job1.setJarByClass(AslogUnique.class);
+        job1.setMapperClass(AslogUniqueMapper.class);
+        job1.setReducerClass(AslogUniqueReduce.class);
+        FileInputFormat.setInputPathFilter(job1, RegexFilter.class);
+        TextInputFormat.addInputPath(job1, new Path(inputPath));
+        TextOutputFormat.setOutputPath(job1, new Path(outputPath));
+        LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);
+        TextOutputFormat.setOutputCompressorClass(job1, GzipCodec.class);
+
+        job1.setMapOutputKeyClass(Text.class);
+        job1.setMapOutputValueClass(NullWritable.class);
+
+        if (job1.waitForCompletion(true)) {
+            System.out.println("-----succeed-----");
+            long costTime = (job1.getFinishTime() - job1.getStartTime()) / 1000;
+            long linesum = job1.getCounters().findCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).getValue();
+            System.out.println(
+                    linesum + " lines take:" + costTime + "s " + linesum / costTime + " line/s");
+        } else {
+            System.out.println("*****job failed*****");
+            System.exit(1);
+        }
+
     }
 }
