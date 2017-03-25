@@ -1,4 +1,4 @@
-package com.udbac.ua.mr;
+package com.udbac.ua.entity;
 
 /**
  * Created by root on 2017/2/20.

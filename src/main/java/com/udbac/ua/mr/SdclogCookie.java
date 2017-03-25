@@ -1,5 +1,6 @@
 package com.udbac.ua.mr;
 
+import com.udbac.ua.util.UAHashUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -42,12 +43,12 @@ public class SdclogCookie{
             }
             String queryed = getquery(tokens[7], fields);
             String uaString = tokens[11].replaceAll("[+]", " ");
-            String uaHash = UAHashUtils.hashUA(uaString);
+            String uaHash = UAHashUtils.hash(uaString);
             String uaDemension = null;
             if (uaMap.containsKey(uaHash)) {
                 uaDemension = uaMap.get(uaHash);
             }else {
-                uaDemension = UAHashUtils.handleUA(uaString);
+                uaDemension = UAHashUtils.parseUA(uaString);
                 uaMap.put(uaHash, uaDemension);
             }
             context.write(new Text(queryed + "\t" + uaDemension), NullWritable.get());

@@ -1,5 +1,7 @@
 package com.udbac.ua.mr;
 
+import com.udbac.ua.util.RegexFilter;
+import com.udbac.ua.util.UAHashUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -27,7 +29,7 @@ public class AslogUnique {
         @Override
         protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
-            String[] tokens = StringUtils.split(value.toString(), "\t");
+            String[] tokens = StringUtils.splitPreserveAllTokens(value.toString(), "\t");
             if (tokens.length != 12) {
                 return;
             }
@@ -40,8 +42,8 @@ public class AslogUnique {
         @Override
         protected void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
             String uaString = key.toString();
-            String parsedUA = UAHashUtils.handleUA(uaString);
-            context.write(new Text(UAHashUtils.hashUA(parsedUA) + "\t" + parsedUA), NullWritable.get());
+            String parsedUA = UAHashUtils.parseUA(uaString);
+            context.write(new Text(UAHashUtils.hash(parsedUA) + "\t" + parsedUA), NullWritable.get());
         }
     }
 
@@ -69,6 +71,7 @@ public class AslogUnique {
 
         job1.setMapOutputKeyClass(Text.class);
         job1.setMapOutputValueClass(NullWritable.class);
+        job1.setNumReduceTasks(1);
 
         if (job1.waitForCompletion(true)) {
             System.out.println("-----succeed-----");

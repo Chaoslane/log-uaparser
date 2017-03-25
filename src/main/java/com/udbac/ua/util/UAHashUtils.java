@@ -1,5 +1,6 @@
-package com.udbac.ua.mr;
+package com.udbac.ua.util;
 
+import com.udbac.ua.entity.UAinfo;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
@@ -21,13 +22,13 @@ public class UAHashUtils {
         }
     }
 
-    protected static String hashUA(String uaString) {
+    public static String hash(String uaString) {
         byte[] sha1ed = DigestUtils.sha(uaString);
         String base64ed = Base64.encodeBase64String(sha1ed);
         return base64ed.replaceAll("[/+_-]","").substring(0, 20);
     }
 
-    protected static String handleUA(String uaStr) {
+    public static String parseUA(String uaStr) {
         String[] vs = uaStr.split("[^A-Za-z0-9_-]");
         UAinfo uAinfo = new UAinfo();
         if (vs.length > 0) {
@@ -105,7 +106,7 @@ public class UAHashUtils {
     private static String getOrElse(String string) {
         return getOrElse(string, "");
     }
-
+    //版本号如果为null 则返回"" 有值则返回 .x
     private static String getOrElse(String string,String seprator) {
         if (StringUtils.isNotBlank(string)) {
             return seprator+string;
