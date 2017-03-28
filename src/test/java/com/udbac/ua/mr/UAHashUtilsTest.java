@@ -2,6 +2,7 @@ package com.udbac.ua.mr;
 
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.udbac.ua.util.UAHashUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -16,14 +17,17 @@ import java.util.*;
 public class UAHashUtilsTest {
 
     public static void main(String[] args) throws IOException {
-//        System.out.println( UAHashUtils.parseUA(
-//                "CMREADBC_Android_480*800_V6.60(480*800;\\xE5\\xB0\\x8F\\xE8\\xBE\\xA3\\xE6\\xA4\\x92;LA2-t;Android 4.1.2;cn;);"));
+
         List<String> strings = FileUtils.readLines(new File("E:\\idm_out.txt"), "UTF-8");
         Set<String> idmset = new HashSet<>();
         for (String line : strings) {
             Gson gson = new Gson();
-            Udbac udbac = gson.fromJson(line, Udbac.class);
-            idmset.add(udbac.getUAID());
+            Udbac udbac = null;
+            try {
+                udbac = gson.fromJson(line, Udbac.class);
+                idmset.add(udbac.getUDBACid());
+            } catch (Exception e) {
+            }
         }
         System.out.println(idmset.size());
 
@@ -31,14 +35,23 @@ public class UAHashUtilsTest {
         Set<String> myset = new HashSet<>();
         for (String line : strings1) {
             String[] split = StringUtils.split(line, "\t");
-            myset.add(split[2]);
+            myset.add(split[0]);
         }
         System.out.println(myset.size());
+
+//        List<String> strings2 = FileUtils.readLines(new File("E:\\unique_out.txt"), "UTF-8");
+//        Set<String> uniqueset = new HashSet<>();
+//        for (String line : strings2) {
+//            String[] split = StringUtils.split(line, "\t");
+//            uniqueset.add(split[0]);
+//        }
+//        System.out.println(uniqueset.size());
 
         int i = 0;
         for (String str : idmset) {
             if (!myset.contains(str)) {
                 i++;
+                System.out.println(str);
             }
         }
         System.out.println(i);
