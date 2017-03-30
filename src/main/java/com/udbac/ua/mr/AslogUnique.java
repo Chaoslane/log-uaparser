@@ -30,42 +30,31 @@ import java.util.Set;
 public class AslogUnique {
 
     public static class AslogUniqueMapper extends Mapper<LongWritable, Text, Text, NullWritable> {
-        private static Set<String> uagnset = new HashSet<>(1024*1024);
         @Override
         protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
             String[] tokens = value.toString().split("[\t]");
             int len = tokens.length;
             String uagn = null;
-            if (len == 10) {
-                uagn = tokens[8];
-            } else if (len == 11 || len == 12) {
-                if (StringUtils.isBlank(tokens[4])) {
-                    System.out.println("Got null adid. Log:"+value.toString());
-                    return;
-                }
+            if (len == 10 || len == 11 || len == 12) {
                 uagn = tokens[8];
             }
-
-            String uaid = null;
-            String parsedUA =null;
-            if (uagnset.contains(uagn)) {
-                return;
-            }
-            uagnset.add(uagn);
-            parsedUA = UAHashUtils.parseUA(uagn);
-            uaid = UAHashUtils.hash(parsedUA);
-            if (parsedUA.contains("\\x")) {
-                parsedUA = URLDecoder.decode(parsedUA.replace("\\x", "%"), "UTF-8");
-            }
-            context.write(new Text(uaid+"\t"+parsedUA), NullWritable.get());
+            context.write(new Text(uagn), NullWritable.get());
         }
     }
 
     public static class AslogUniqueReduce extends Reducer<Text, NullWritable, Text, NullWritable> {
+        private static Set<String> uaidset = new HashSet<>(1024*1024);
         @Override
         protected void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
-            context.write(key, NullWritable.get());
+            String uagn = key.toString();
+            String parsedUA = UAHashUtils.parseUA(uagn);
+            String uaid = UAHashUtils.hash(parsedUA);
+            if (uaidset.contains(uaid)) {
+                return;
+            }
+            uaidset.add(uaid);
+            context.write(new Text(uaid + "\t" + parsedUA), NullWritable.get());
         }
     }
 

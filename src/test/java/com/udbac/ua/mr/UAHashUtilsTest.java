@@ -56,6 +56,7 @@ public class UAHashUtilsTest {
         }
         System.out.println(i);
     }
+
     static class Udbac{
         private String UDBACid;
         private String UAID;

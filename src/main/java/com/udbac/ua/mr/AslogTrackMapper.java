@@ -1,5 +1,6 @@
 package com.udbac.ua.mr;
 
+import com.udbac.ua.util.RegexFilter;
 import com.udbac.ua.util.UAHashUtils;
 import com.udbac.ua.util.UnsupportedlogException;
 import org.apache.commons.lang.StringUtils;
@@ -16,6 +17,7 @@ import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Logger;
+import redis.clients.jedis.Jedis;
 
 import java.io.IOException;
 import java.util.*;
@@ -27,34 +29,32 @@ import java.util.regex.Pattern;
  */
 public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, Text> {
     private static Logger logger = Logger.getLogger(AslogTrackMapper.class);
+    private static Map<String, String> ua_hash = new HashMap<>(1024 * 1024);
 
     @Override
     protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
         if (StringUtils.isNotBlank(value.toString())) {
+            Text text = null;
             try {
-                Text text = new Text(asLogParser(value.toString()));
-                context.write(NullWritable.get(),text);
+                text = new Text(asLogParser(value.toString()));
             } catch (UnsupportedlogException e) {
                 logger.info(e.getMessage());
             }
+            context.write(NullWritable.get(),text);
         }
     }
 
     private static String[] array =new String[]{
             "m2", "m1c", "m1a", "m9b", "m9", "m2a", "uid",
-            "m1", "m3", "m1b", "m9c", "mo"};
+            "m1", "m3", "m1b","m9c"};
     private static List<String> vec = new ArrayList<>(Arrays.asList(array));
 
-    private static Map<String, String> ua_hash = new HashMap<>(1024 * 1024);
-
     private static boolean validArg(String str) {
-        String regex = "[A-Za-z0-9,-]*";
+        String regex = "[A-Za-z0-9.-]*";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(str);
-        if (matcher.matches()) {
-            return true;
-        }
-        return false;
+        return matcher.matches();
     }
 
     static String asLogParser(String line) throws UnsupportedlogException {
@@ -71,6 +71,7 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, T
         String ckie = null;
         String auid = null;
         String refr = null;
+        String adop = null;
         int len = tokens.length;
         if (len == 10) {
             time = tokens[0];
@@ -83,30 +84,72 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, T
             areq = tokens[7];
             uagn = tokens[8];
             ckie = tokens[9];
+            if (StringUtils.isNotBlank(aurl)) {
+                String[] adop_adid = aurl.split("[,&]");
+                adid = adop_adid[1];
+                switch (adop_adid[0]) {
+                    case "/c":
+                        adop = "clk";
+                        break;
+                    case "/i":
+                    case "/t":
+                        adop = "imp";
+                        break;
+                    default:
+                        throw new UnsupportedlogException(
+                                "Unsupported log format Exception :" + tokens.length + " fields, bad operator :" + adop_adid[0]);
+                }
+            } else {
+                throw new UnsupportedlogException("Unsupported log format, fetch AD operator failed.");
+            }
         } else if (len == 11) {
             time = tokens[0];
             msec = tokens[1];
             addr = tokens[2];
             xfwd = tokens[3];
             adid = tokens[4];
-            if (StringUtils.isBlank(adid)) {
-                throw new UnsupportedlogException("Unsupported log format Exception : bad adid : '"+ adid +"'\n" +"Log : "+ line);
-            }
             aurl = tokens[5];
             aarg = tokens[6];
             areq = tokens[7];
             uagn = tokens[8];
             ckie = tokens[9];
             auid = tokens[10];
+            if (StringUtils.isNotBlank(aurl)) {
+                String[] adop_adid = aurl.split("[,&]");
+                switch (adop_adid[0]) {
+                    case "/c":
+                        adop = "clk";
+                        adid = adop_adid[1];
+                        break;
+                    case "/i":
+                        adop = "imp";
+                        adid = adop_adid[1];
+                        break;
+                    case "/m":
+                        adop = "clk";
+                        adid = tokens[4];
+                        break;
+                    case "/s":
+                        adop = "clk";
+                        adid = tokens[4];
+                        break;
+                    case "/do":
+                        adop = "";
+                        adid = "";
+                        break;
+                    default:
+                        throw new UnsupportedlogException(
+                                "Unsupported log format Exception :" + tokens.length + " fields, bad operator :" + adop_adid[0]);
+                }
+            }
         } else if (len == 12) {
             time = tokens[0];
             msec = tokens[1];
             addr = tokens[2];
             xfwd = tokens[3];
             adid = tokens[4];
-            if (StringUtils.isBlank(adid)) {
-                throw new UnsupportedlogException("Unsupported log format Exception : bad adid : '"+ adid +"'\n" +"Log : "+ line);
-            }
+            if (StringUtils.isBlank(adid))
+                throw new UnsupportedlogException("Unsupported log format: "+tokens.length+"fields, bad adid:'"+adid+"'");
             aurl = tokens[5];
             aarg = tokens[6];
             areq = tokens[7];
@@ -115,13 +158,12 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, T
             auid = tokens[10];
             refr = tokens[11];
         } else {
-            throw new UnsupportedlogException("Unsupported log format Exception : bad fields length : "+ len+"\n" +"Log : "+ line);
+            throw new UnsupportedlogException("Unsupported log format, found "+tokens.length+" fields, AS log support 10/11/12 fields only.");
         }
 
         //获取wxid
         String wxid = null;
         Map<String, String> infoMap = new HashMap<>();
-
         for (String ustr : new String[]{aurl, aarg}) {
             if (StringUtils.isNotBlank(ustr)) {
                 String[] items = ustr.split("[,&]");
@@ -131,9 +173,8 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, T
                     if (StringUtils.isNotBlank(key) && StringUtils.isNotBlank(value)
                             && value.length() > 0
                             && validArg(value)
-                            && !key.equals("uid")
-                            && value.length() < 20) {
-                        infoMap.put(key, value);
+                            && !key.equals("uid")) {
+                        infoMap.put(key, value.replaceAll("[^A-Za-z0-9.-]*",""));
                     }
                 }
             }
@@ -185,6 +226,7 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, T
         Job job1 = Job.getInstance(conf, "TrackUA");
         job1.setJarByClass(AslogTrackMapper.class);
         job1.setMapperClass(AslogTrackMapper.class);
+        TextInputFormat.setInputPathFilter(job1, RegexFilter.class);
         TextInputFormat.addInputPath(job1, new Path(inputPath));
         TextOutputFormat.setOutputPath(job1, new Path(outputPath));
         LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);
