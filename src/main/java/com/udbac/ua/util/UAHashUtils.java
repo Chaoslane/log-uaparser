@@ -8,28 +8,31 @@ import ua_parser.Client;
 import ua_parser.Parser;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 /**
  * Created by root on 2017/2/14.
  */
 public class UAHashUtils {
     private static Parser uapaser;
+
     static {
         try {
             uapaser = new Parser();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Load ua parser failed");
         }
     }
 
     public static String hash(String uaString) {
         byte[] sha1ed = DigestUtils.sha(uaString);
         String base64ed = Base64.encodeBase64String(sha1ed);
-        return base64ed.replaceAll("[/+_-]","").substring(0, 20);
+        return base64ed.replaceAll("[/+_-]", "").substring(0, 20);
     }
 
     public static String parseUA(String uaStr) {
-        String[] vs = uaStr.split("[^A-Za-z0-9_-]");
+        String[] vs = uaStr.split("[^A-Za-z0-9_-]", -1);
         UAinfo uAinfo = new UAinfo();
         if (vs.length > 0) {
             //优酷
@@ -103,17 +106,45 @@ public class UAHashUtils {
                     break;
             }
         }
-        return uAinfo.toString();
+
+        String uaInfoStr = urlDecode(uAinfo.toString());
+        if (StringUtils.isNotBlank(uaInfoStr)) {
+            String[] infos = uaInfoStr.split("\t", -1);
+            if (infos.length == 8) {
+                boolean flag = true;
+                for (String info : infos) {
+                    if (info.length() > 50) {
+                        flag = false;
+                        break;
+                    }
+                }
+                if (flag) {
+                    return uaInfoStr;
+                }
+            }
+        }
+        return new UAinfo().toString();
+    }
+
+    private static String urlDecode(String strUrl) {
+        try {
+            strUrl = strUrl.replace("\\x", "%").replace("%25", "%");
+            String decoded = URLDecoder.decode(strUrl, "UTF-8");
+            return decoded.replaceAll("\\\\x..", " ");
+        } catch (UnsupportedEncodingException | IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static String getOrElse(String string) {
         return getOrElse(string, "");
     }
+
     //版本号如果为null 则返回"" 有值则返回 .x
-    private static String getOrElse(String string,String seprator) {
+    private static String getOrElse(String string, String seprator) {
         if (StringUtils.isNotBlank(string)) {
-            return seprator+string;
-        }else {
+            return seprator + string;
+        } else {
             return "";
         }
     }

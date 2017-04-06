@@ -1,5 +1,6 @@
 package com.udbac.ua.mr;
 
+import com.udbac.ua.entity.UAinfo;
 import com.udbac.ua.util.RegexFilter;
 import com.udbac.ua.util.UAHashUtils;
 import com.udbac.ua.util.UnsupportedlogException;
@@ -34,14 +35,16 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, T
     @Override
     protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
         context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
+
         if (StringUtils.isNotBlank(value.toString())) {
-            Text text = null;
             try {
-                text = new Text(asLogParser(value.toString()));
+                String res = asLogParser(value.toString());
+                if (res.split("\t").length == 3) {
+                    context.write(NullWritable.get(),new Text(res));
+                }
             } catch (UnsupportedlogException e) {
                 logger.info(e.getMessage());
             }
-            context.write(NullWritable.get(),text);
         }
     }
 
@@ -85,7 +88,7 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, T
             uagn = tokens[8];
             ckie = tokens[9];
             if (StringUtils.isNotBlank(aurl)) {
-                String[] adop_adid = aurl.split("[,&]");
+                String[] adop_adid = aurl.split("[,&]",-1);
                 adid = adop_adid[1];
                 switch (adop_adid[0]) {
                     case "/c":
@@ -115,7 +118,7 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, T
             ckie = tokens[9];
             auid = tokens[10];
             if (StringUtils.isNotBlank(aurl)) {
-                String[] adop_adid = aurl.split("[,&]");
+                String[] adop_adid = aurl.split("[,&]",-1);
                 switch (adop_adid[0]) {
                     case "/c":
                         adop = "clk";

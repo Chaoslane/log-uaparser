@@ -1,7 +1,9 @@
 package com.udbac.ua.mr;
 
+import com.udbac.ua.entity.UAinfo;
 import com.udbac.ua.util.RegexFilter;
 import com.udbac.ua.util.UAHashUtils;
+import com.udbac.ua.util.UnsupportedlogException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -17,8 +19,10 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.HashSet;
 import java.util.Set;
@@ -33,28 +37,31 @@ public class AslogUnique {
         @Override
         protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
-            String[] tokens = value.toString().split("[\t]");
+            String[] tokens = StringUtils.splitPreserveAllTokens(value.toString(), "\t");
             int len = tokens.length;
             String uagn = null;
             if (len == 10 || len == 11 || len == 12) {
                 uagn = tokens[8];
             }
-            context.write(new Text(uagn), NullWritable.get());
+            if (StringUtils.isNotBlank(uagn)) {
+                context.write(new Text(uagn), NullWritable.get());
+            }
         }
     }
 
     public static class AslogUniqueReduce extends Reducer<Text, NullWritable, Text, NullWritable> {
-        private static Set<String> uaidset = new HashSet<>(1024*1024);
+        private static Set<String> set = new HashSet<>(1024 * 1024);
+
         @Override
-        protected void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
-            String uagn = key.toString();
-            String parsedUA = UAHashUtils.parseUA(uagn);
+        protected void reduce(Text key, Iterable<NullWritable> values, Context context)
+                throws IOException, InterruptedException {
+
+            String parsedUA = UAHashUtils.parseUA(key.toString());
             String uaid = UAHashUtils.hash(parsedUA);
-            if (uaidset.contains(uaid)) {
-                return;
+            if (!set.contains(uaid)) {
+                set.add(uaid);
+                context.write(new Text(uaid + "\t" + parsedUA), NullWritable.get());
             }
-            uaidset.add(uaid);
-            context.write(new Text(uaid + "\t" + parsedUA), NullWritable.get());
         }
     }
 
@@ -90,6 +97,7 @@ public class AslogUnique {
             long linesum = job1.getCounters().findCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).getValue();
             System.out.println(
                     linesum + " lines take:" + costTime + "s " + linesum / costTime + " line/s");
+
         } else {
             System.out.println("*****job failed*****");
             System.exit(1);

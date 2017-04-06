@@ -27,10 +27,12 @@ public class RegexFilter extends Configured implements PathFilter {
             pattern = Pattern.compile(fileReg);
             if (fs.isDirectory(path)) {
                 return true;
+            } else if (fs.getFileStatus(path).getLen() < 100) {
+                return false;
             } else {
                 Matcher m = pattern.matcher(path.toString());
                 if (m.matches()) {
-                    logger.info(path.toString()+" is matched");
+                    logger.info(path.getName() + " is matched");
                 }
                 return m.matches();
             }
