@@ -130,7 +130,7 @@ public class UAHashUtils {
         try {
             strUrl = strUrl.replace("\\x", "%").replace("%25", "%");
             String decoded = URLDecoder.decode(strUrl, "UTF-8");
-            return decoded.replaceAll("\\\\x..", " ");
+            return decoded.replaceAll("\\\\x[A-Za-z]{0,2}", " ").replace("\\", "");
         } catch (UnsupportedEncodingException | IllegalArgumentException e) {
             return null;
         }
