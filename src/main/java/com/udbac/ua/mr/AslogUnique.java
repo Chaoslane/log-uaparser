@@ -55,12 +55,15 @@ public class AslogUnique {
         @Override
         protected void reduce(Text key, Iterable<NullWritable> values, Context context)
                 throws IOException, InterruptedException {
-
-            String parsedUA = UAHashUtils.parseUA(key.toString());
-            String uaid = UAHashUtils.hash(parsedUA);
-            if (!set.contains(uaid)) {
-                set.add(uaid);
-                context.write(new Text(uaid + "\t" + parsedUA), NullWritable.get());
+            try {
+                String parsedUA = UAHashUtils.parseUA(key.toString());
+                String uaid = UAHashUtils.hash(parsedUA);
+                if (!set.contains(uaid)) {
+                    set.add(uaid);
+                    context.write(new Text(uaid + "\t" + parsedUA), NullWritable.get());
+                }
+            } catch (UnsupportedlogException e) {
+                e.printStackTrace();
             }
         }
     }

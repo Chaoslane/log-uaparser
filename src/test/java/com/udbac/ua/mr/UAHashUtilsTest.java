@@ -18,34 +18,19 @@ public class UAHashUtilsTest {
 
     public static void main(String[] args) throws IOException {
 
-        List<String> strings = FileUtils.readLines(new File("E:\\idm_out.txt"), "UTF-8");
+        List<String> strings = FileUtils.readLines(new File("E:\\wxid.txt"), "UTF-8");
         Set<String> idmset = new HashSet<>();
         for (String line : strings) {
-            Gson gson = new Gson();
-            Udbac udbac = null;
-            try {
-                udbac = gson.fromJson(line, Udbac.class);
-                idmset.add(udbac.getUDBACid());
-            } catch (Exception e) {
-            }
+            idmset.add(line);
         }
         System.out.println(idmset.size());
 
-        List<String> strings1 = FileUtils.readLines(new File("E:\\my_out.txt"), "UTF-8");
+        List<String> strings1 = FileUtils.readLines(new File("E:\\wwwxid.txt"), "UTF-8");
         Set<String> myset = new HashSet<>();
         for (String line : strings1) {
-            String[] split = StringUtils.split(line, "\t");
-            myset.add(split[0]);
+            myset.add(line);
         }
         System.out.println(myset.size());
-
-//        List<String> strings2 = FileUtils.readLines(new File("E:\\unique_out.txt"), "UTF-8");
-//        Set<String> uniqueset = new HashSet<>();
-//        for (String line : strings2) {
-//            String[] split = StringUtils.split(line, "\t");
-//            uniqueset.add(split[0]);
-//        }
-//        System.out.println(uniqueset.size());
 
         int i = 0;
         for (String str : idmset) {

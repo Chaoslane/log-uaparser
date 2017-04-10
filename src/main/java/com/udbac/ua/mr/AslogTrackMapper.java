@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
  * Created by root on 2017/2/15.
  */
 public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, Text> {
+
     private static Logger logger = Logger.getLogger(AslogTrackMapper.class);
     private static Map<String, String> ua_hash = new HashMap<>(1024 * 1024);
 
@@ -169,7 +170,7 @@ public class AslogTrackMapper extends Mapper<LongWritable, Text, NullWritable, T
         Map<String, String> infoMap = new HashMap<>();
         for (String ustr : new String[]{aurl, aarg}) {
             if (StringUtils.isNotBlank(ustr)) {
-                String[] items = ustr.split("[,&]");
+                String[] items = ustr.split("[,&]",-1);
                 for (String item : items) {
                     String key = StringUtils.substringBefore(item,"=");
                     String value = StringUtils.substringAfter(item, "=");
