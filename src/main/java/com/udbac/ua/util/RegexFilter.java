@@ -15,16 +15,14 @@ import java.util.regex.Pattern;
  */
 public class RegexFilter extends Configured implements PathFilter {
     private static Logger logger = Logger.getLogger(RegexFilter.class);
-    private Pattern pattern;
-    private FileSystem fs;
-    private String fileReg;
 
     @Override
     public boolean accept(Path path) {
         try {
-            fs = FileSystem.get(getConf());
-            fileReg = getConf().get("filename.pattern");
-            pattern = Pattern.compile(fileReg);
+            FileSystem fs = FileSystem.get(getConf());
+            String fileReg = getConf().get("filename.pattern");
+            Pattern pattern = Pattern.compile(fileReg);
+
             if (fs.isDirectory(path)) {
                 return true;
             } else if (fs.getFileStatus(path).getLen() < 100) {
@@ -36,6 +34,7 @@ public class RegexFilter extends Configured implements PathFilter {
                 }
                 return m.matches();
             }
+
         } catch (IOException e) {
             e.printStackTrace();
             return false;
