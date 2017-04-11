@@ -29,10 +29,10 @@ public class UAHashUtils {
         byte[] sha1ed = DigestUtils.sha(uaString);
         String base64ed = Base64.encodeBase64String(sha1ed);
         String safeurl = base64ed.replace("+", "-").replace("/", "_").replace("=", "")
-                .replaceAll("[_-]", "").substring(0,20);
+                .replaceAll("[-_]", "");
         if (safeurl.length() < 20) {
             throw new UnsupportedlogException("Got hashid too short:" + safeurl);
-        } else return safeurl;
+        } else return safeurl.substring(0,20);
     }
 
     public static String parseUA(String uaStr) {

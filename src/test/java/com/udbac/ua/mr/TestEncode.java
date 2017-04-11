@@ -10,7 +10,7 @@ import com.udbac.ua.util.UnsupportedlogException;
  */
 public class TestEncode {
     public static void main(String[] args) throws UnsupportedlogException {
-        String s = "a\ta\t\ta\t\t";
-        System.out.println(s.split("\t",-1).length);
+        String s = "aaaa_aaa-ff-_ddd";
+        System.out.println(s.replaceAll("[-_]",""));
     }
 }
