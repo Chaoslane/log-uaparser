@@ -118,8 +118,7 @@ public class UAHashUtils {
                 ? urlDecode(uaInfoStr) : uaInfoStr;
 
         if (StringUtils.isNotBlank(uaInfoStr)) {
-            uaInfoStr = uaInfoStr.replace("+", " ").replaceAll("","")
-                    .replaceAll("(\\\\x[A-Za-z0-9]{0,2})|\\\\|R%H|R%|%", "");
+            uaInfoStr = uaInfoStr.replace("+", " ").replaceAll("(\\\\x[A-Za-z0-9]{0,2})|\\\\|R%H|R%|%", "");
             String[] infos = uaInfoStr.split("\t", -1);
             if (infos.length == 8) {
                 boolean flag = true;
