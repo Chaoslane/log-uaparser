@@ -28,11 +28,13 @@ public class UAHashUtils {
     public static String hash(String uaString) throws UnsupportedlogException {
         byte[] sha1ed = DigestUtils.sha(uaString);
         String base64ed = Base64.encodeBase64String(sha1ed);
-        String safeurl = base64ed.replace("+", "-").replace("/", "_").replace("=", "")
+        String safeurl = base64ed.replace("+", "-")
+                .replace("/", "_")
+                .replace("=", "")
                 .replaceAll("[-_]", "");
         if (safeurl.length() < 20) {
             throw new UnsupportedlogException("Got hashid too short:" + safeurl);
-        } else return safeurl.substring(0,20);
+        } else return safeurl.substring(0,20).replaceAll("[\r\n]","");
     }
 
     public static String parseUA(String uaStr) {
@@ -111,8 +113,13 @@ public class UAHashUtils {
             }
         }
 
-        String uaInfoStr = urlDecode(uAinfo.toString());
+        String uaInfoStr = uAinfo.toString();
+        uaInfoStr = uaInfoStr.matches(".*(\\\\x[A-Za-z0-9]{2})+.*|.*(%[A-Za-z0-9]{2})+.*")
+                ? urlDecode(uaInfoStr) : uaInfoStr;
+
         if (StringUtils.isNotBlank(uaInfoStr)) {
+            uaInfoStr = uaInfoStr.replace("+", " ").replaceAll("","")
+                    .replaceAll("(\\\\x[A-Za-z0-9]{0,2})|\\\\|R%H|R%|%", "");
             String[] infos = uaInfoStr.split("\t", -1);
             if (infos.length == 8) {
                 boolean flag = true;
@@ -133,10 +140,9 @@ public class UAHashUtils {
     private static String urlDecode(String strUrl) {
         try {
             strUrl = strUrl.replace("\\x", "%").replace("%25", "%");
-            String decoded = URLDecoder.decode(strUrl, "UTF-8");
-            return decoded.replaceAll("\\\\x[A-Za-z]{0,2}", " ").replace("\\", "");
+            return URLDecoder.decode(strUrl, "UTF-8");
         } catch (UnsupportedEncodingException | IllegalArgumentException e) {
-            return null;
+            return "";
         }
     }
 
