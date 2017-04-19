@@ -34,7 +34,7 @@ public class UAHashUtils {
                 .replaceAll("[-_]", "");
         if (safeurl.length() < 20) {
             throw new UnsupportedlogException("Got hashid too short:" + safeurl);
-        } else return safeurl.substring(0,20).replaceAll("[\r\n]","");
+        } else return safeurl.substring(0, 20).replaceAll("[\r\n]", "");
     }
 
     public static String parseUA(String uaStr) {
@@ -46,7 +46,7 @@ public class UAHashUtils {
                 case "Youku":
                 case "Tudou": {
                     uAinfo = othYouku(uaStr);
-                    String[] vs1 = uaStr.split("[;]",-1);
+                    String[] vs1 = uaStr.split("[;]", -1);
                     if (vs1.length == 5) {
                         uAinfo.setCatalog("Youku");
                         uAinfo.setBrowser(vs1[0]);
@@ -59,7 +59,7 @@ public class UAHashUtils {
                             uAinfo.setModel(vs1[4]);
                         }
                     } else if (vs1.length == 4) {
-                        String[] vs2 = uaStr.split("[; /]",-1);
+                        String[] vs2 = uaStr.split("[; /]", -1);
                         if (vs2.length == 6) {
                             uAinfo.setCatalog("Youku");
                             uAinfo.setBrowser(vs2[0]);
@@ -77,7 +77,7 @@ public class UAHashUtils {
                 case "QYPlayer":
                 case "Cupid": {
                     uAinfo = othIqiyi(uaStr);
-                    String[] vs1 = uaStr.split("[;/]",-1);
+                    String[] vs1 = uaStr.split("[;/]", -1);
                     if (vs1.length == 2) {
                         uAinfo.setCatalog("iQiyi");
                         uAinfo.setBrowser(vs1[0]);

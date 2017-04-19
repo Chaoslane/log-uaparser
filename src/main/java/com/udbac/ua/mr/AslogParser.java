@@ -27,7 +27,7 @@ public class AslogParser {
         return matcher.matches();
     }
 
-    public static Map<String,String> asLogParser(String line) throws UnsupportedlogException {
+    public static Map<String, String> asLogParser(String line) throws UnsupportedlogException {
         Map<String, String> fieldsMap = new HashMap<>();
         String[] tokens = StringUtils.splitPreserveAllTokens(line, "\t");
         String time = null;
@@ -126,7 +126,7 @@ public class AslogParser {
             ckie = tokens[9];
             auid = tokens[10];
             refr = tokens[11];
-            if (aurl.contains("/s")||aurl.contains("/s")) {
+            if (aurl.contains("/s") || aurl.contains("/s")) {
                 adop = "imp";
             } else if (aurl.contains("/m") || aurl.contains("/c")) {
                 adop = "clk";
@@ -189,7 +189,7 @@ public class AslogParser {
         fieldsMap.put("datetime", time.substring(0, 19).replace("T", " "));
         fieldsMap.put("wxid", UAHashUtils.hash(wxid));
         fieldsMap.put("uaid", uaid);
-        fieldsMap.put("adid", adid);
+        fieldsMap.put("adid", adid.replace("\\", ""));
         fieldsMap.put("adop", adop);
         return fieldsMap;
     }

@@ -79,7 +79,7 @@ public class UAinfo {
 
     @Override
     public String toString() {
-        return  catalog + '\t' +
+        return catalog + '\t' +
                 browser + '\t' +
                 browserver + '\t' +
                 os + '\t' +

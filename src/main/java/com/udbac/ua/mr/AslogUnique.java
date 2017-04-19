@@ -1,6 +1,5 @@
 package com.udbac.ua.mr;
 
-import com.udbac.ua.entity.UAinfo;
 import com.udbac.ua.util.RegexFilter;
 import com.udbac.ua.util.UAHashUtils;
 import com.udbac.ua.util.UnsupportedlogException;
@@ -19,11 +18,8 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.HashSet;
 import java.util.Set;
 

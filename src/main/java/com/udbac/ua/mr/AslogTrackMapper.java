@@ -72,7 +72,6 @@ public class AslogTrackMapper {
     }
 
 
-
     public static void main(String[] args) throws InterruptedException, IOException, ClassNotFoundException {
         Configuration conf = new Configuration();
         conf.set("io.compression.codecs", "io.sensesecure.hadoop.xz.XZCodec");
