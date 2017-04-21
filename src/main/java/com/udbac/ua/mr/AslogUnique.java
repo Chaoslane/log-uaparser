@@ -1,6 +1,6 @@
 package com.udbac.ua.mr;
 
-import com.udbac.ua.util.RegexFilter;
+import com.udbac.ua.util.DateFilter;
 import com.udbac.ua.util.UAHashUtils;
 import com.udbac.ua.util.UnsupportedlogException;
 import org.apache.commons.lang.StringUtils;
@@ -64,7 +64,6 @@ public class AslogUnique {
         }
     }
 
-
     public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
         Configuration conf = new Configuration();
         conf.set("io.compression.codecs", "io.sensesecure.hadoop.xz.XZCodec");
@@ -81,7 +80,7 @@ public class AslogUnique {
         job1.setJarByClass(AslogUnique.class);
         job1.setMapperClass(AslogUniqueMapper.class);
         job1.setReducerClass(AslogUniqueReduce.class);
-        FileInputFormat.setInputPathFilter(job1, RegexFilter.class);
+        FileInputFormat.setInputPathFilter(job1, DateFilter.class);
         TextInputFormat.addInputPath(job1, new Path(inputPath));
         TextOutputFormat.setOutputPath(job1, new Path(outputPath));
         LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);

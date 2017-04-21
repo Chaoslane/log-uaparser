@@ -1,6 +1,6 @@
 package com.udbac.ua.mr;
 
-import com.udbac.ua.util.RegexFilter;
+import com.udbac.ua.util.DateFilter;
 import com.udbac.ua.util.UAHashUtils;
 import com.udbac.ua.util.UnsupportedlogException;
 import org.apache.commons.lang.StringUtils;
@@ -21,6 +21,8 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 
 /**
@@ -30,6 +32,13 @@ public class AslogTrackMapper {
 
     static class TrackMapper extends Mapper<LongWritable, Text, Text, Text> {
         private static Logger logger = Logger.getLogger(TrackMapper.class);
+        private static String date ;
+
+        @Override
+        protected void setup(Context context) throws IOException, InterruptedException {
+            date = new Configuration().get("filename.date");
+            date = date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8);
+        }
 
         @Override
         protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
@@ -37,7 +46,7 @@ public class AslogTrackMapper {
 
             if (StringUtils.isNotBlank(value.toString())) {
                 try {
-                    Map<String, String> asLogMap = AslogParser.asLogParser(value.toString());
+                    Map<String, String> asLogMap = AslogParser.asLogParser(value.toString(),date);
                     context.write(new Text(asLogMap.get("adop")),
                             new Text(asLogMap.get("wxid") + "\t"
                                     + asLogMap.get("datetime") + "\t"
@@ -71,7 +80,6 @@ public class AslogTrackMapper {
         }
     }
 
-
     public static void main(String[] args) throws InterruptedException, IOException, ClassNotFoundException {
         Configuration conf = new Configuration();
         conf.set("io.compression.codecs", "io.sensesecure.hadoop.xz.XZCodec");
@@ -90,7 +98,7 @@ public class AslogTrackMapper {
         job1.setReducerClass(TrackReducer.class);
         job1.setOutputKeyClass(NullWritable.class);
 
-        TextInputFormat.setInputPathFilter(job1, RegexFilter.class);
+        TextInputFormat.setInputPathFilter(job1, DateFilter.class);
         TextInputFormat.addInputPath(job1, new Path(inputPath));
         TextOutputFormat.setOutputPath(job1, new Path(outputPath));
         LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);

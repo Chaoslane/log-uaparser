@@ -11,9 +11,8 @@ import java.util.regex.Pattern;
 /**
  * Created by 43890 on 2017/4/10.
  */
-public class AslogParser {
-
-    private static Map<String, String> ua_hash = new HashMap<>(1024 * 1024);
+public class AslogParser{
+    private static Map<String, String> ua_hash = new HashMap<>(1024*1024);
 
     private static String[] array = new String[]{
             "m2", "m1c", "m1a", "m9b", "m9", "m2a", "uid",
@@ -27,7 +26,7 @@ public class AslogParser {
         return matcher.matches();
     }
 
-    public static Map<String, String> asLogParser(String line) throws UnsupportedlogException {
+    public static Map<String, String> asLogParser(String line,String date) throws UnsupportedlogException {
         Map<String, String> fieldsMap = new HashMap<>();
         String[] tokens = StringUtils.splitPreserveAllTokens(line, "\t");
         String time = null;
@@ -137,6 +136,10 @@ public class AslogParser {
             throw new UnsupportedlogException("Unsupported log format, found " + tokens.length + " fields, AS log support 10/11/12 fields only.");
         }
 
+        if (!time.contains(date)) {
+            throw new UnsupportedlogException("Unsupported log format, wrong date ");
+        }
+
         if (StringUtils.isBlank(adop) || StringUtils.isBlank(adid)
                 || adid.length() > 24) {
             throw new UnsupportedlogException("Unsupported log format, got null adop or adid ");
@@ -189,7 +192,7 @@ public class AslogParser {
         fieldsMap.put("datetime", time.substring(0, 19).replace("T", " "));
         fieldsMap.put("wxid", UAHashUtils.hash(wxid));
         fieldsMap.put("uaid", uaid);
-        fieldsMap.put("adid", adid.replace("\\", ""));
+        fieldsMap.put("adid", adid.replaceAll("\\\\x|\\\\", ""));
         fieldsMap.put("adop", adop);
         return fieldsMap;
     }
