@@ -6,7 +6,7 @@ package com.udbac.ua.entity;
 public class UAinfo {
     private String catalog = "Other";
     private String browser = "Other";
-    private String browserver = "";
+    private String browserver;
     private String os = "Other";
     private String osver = "";
     private String device = "Other";

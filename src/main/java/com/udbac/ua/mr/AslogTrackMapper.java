@@ -1,12 +1,14 @@
 package com.udbac.ua.mr;
 
-import com.udbac.ua.util.DateFilter;
+import com.udbac.ua.entity.AslogRaw;
+import com.udbac.ua.util.RegexFilter;
 import com.udbac.ua.util.UAHashUtils;
-import com.udbac.ua.util.UnsupportedlogException;
+import com.udbac.ua.util.HashIdException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.GzipCodec;
@@ -21,61 +23,94 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Created by root on 2017/2/15.
+ *
  */
 public class AslogTrackMapper {
 
-    static class TrackMapper extends Mapper<LongWritable, Text, Text, Text> {
+    static class TrackMapper extends Mapper<LongWritable, Text, Text, MapWritable> {
         private static Logger logger = Logger.getLogger(TrackMapper.class);
-        private static String date ;
+        private static Map<String, String> uakv = new HashMap<>(1024 * 1024);
+        private static String date;
 
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
-            date = new Configuration().get("filename.date");
+            date = context.getConfiguration().get("filename.pattern").replaceAll("[^0-9]", "");
             date = date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8);
         }
 
         @Override
         protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             context.getCounter(UAHashUtils.MyCounters.ALLLINECOUNTER).increment(1);
+            AslogRaw aslog = AslogRaw.parseAslog(value.toString());
+            if (null == aslog) return;
+            if (!aslog.getTime().contains(date)){
+                logger.warn("Got Illegal date :" + date);
+                return;
+            }
 
-            if (StringUtils.isNotBlank(value.toString())) {
-                try {
-                    Map<String, String> asLogMap = AslogParser.asLogParser(value.toString(),date);
-                    context.write(new Text(asLogMap.get("adop")),
-                            new Text(asLogMap.get("wxid") + "\t"
-                                    + asLogMap.get("datetime") + "\t"
-                                    + asLogMap.get("adid") + "\t"
-                                    + asLogMap.get("uaid")));
-                } catch (UnsupportedlogException e) {
-                    logger.info(e.getMessage());
+            try {
+                //获取解析的uainfo字符串
+                String uaInfo = null;
+                String uagn = aslog.getUagn();
+                if (StringUtils.isNotBlank(uakv.get(uagn))) {
+                    uaInfo = uakv.get(uagn);
+                } else {
+                    uaInfo = UAHashUtils.parseUA(uagn);
+                    uakv.put(uagn, uaInfo);
                 }
+
+                String hwxid = UAHashUtils.hash(AslogHandler.getWxid(aslog));
+                String uaid = UAHashUtils.hash(uaInfo);
+
+                MapWritable mw = new MapWritable();
+                mw.put(new Text("wxid"), new Text(hwxid));
+                mw.put(new Text("dt"), new Text(aslog.getTime()));
+                mw.put(new Text("adid"), new Text(aslog.getAdid()));
+                mw.put(new Text("uaid"), new Text(uaid));
+                mw.put(new Text("uainfo"), new Text(uaInfo));
+
+                context.write(new Text(aslog.getAdop()), mw);
+            } catch (HashIdException e) {
+                logger.warn(e);
             }
         }
     }
 
-    static class TrackReducer extends Reducer<Text, Text, NullWritable, Text> {
+
+    static class TrackReducer extends Reducer<Text, MapWritable, NullWritable, Text> {
         private MultipleOutputs<NullWritable, Text> multipleOutputs;
+        private static Map<String, String> uaInfoMap ;
 
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
             multipleOutputs = new MultipleOutputs<>(context);
+            uaInfoMap = new HashMap<>();
         }
 
         @Override
-        protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            for (Text value : values) {
-                multipleOutputs.write(NullWritable.get(), value, key.toString());
+        protected void reduce(Text key, Iterable<MapWritable> values, Context context) throws IOException, InterruptedException {
+            for (MapWritable value : values) {
+                String wxid = value.get(new Text("wxid")).toString();
+                String dt = value.get(new Text("dt")).toString();
+                String adid = value.get(new Text("adid")).toString();
+                String uaid = value.get(new Text("uaid")).toString();
+                String uainfo = value.get(new Text("uainfo")).toString();
+
+                uaInfoMap.put(uaid, uainfo);
+                multipleOutputs.write(NullWritable.get(), new Text(wxid + "\t" + dt + "\t" + adid + "\t" + uaid), key.toString());
             }
         }
 
         @Override
         protected void cleanup(Context context) throws IOException, InterruptedException {
+            for (Map.Entry entry : uaInfoMap.entrySet()) {
+                multipleOutputs.write(NullWritable.get(), new Text(entry.getKey() + "\t" + entry.getValue()), "uainfo");
+            }
             multipleOutputs.close();
         }
     }
@@ -95,10 +130,11 @@ public class AslogTrackMapper {
         job1.setJarByClass(AslogTrackMapper.class);
         job1.setMapperClass(TrackMapper.class);
         job1.setMapOutputKeyClass(Text.class);
+        job1.setMapOutputValueClass(MapWritable.class);
         job1.setReducerClass(TrackReducer.class);
         job1.setOutputKeyClass(NullWritable.class);
 
-        TextInputFormat.setInputPathFilter(job1, DateFilter.class);
+        TextInputFormat.setInputPathFilter(job1, RegexFilter.class);
         TextInputFormat.addInputPath(job1, new Path(inputPath));
         TextOutputFormat.setOutputPath(job1, new Path(outputPath));
         LazyOutputFormat.setOutputFormatClass(job1, TextOutputFormat.class);

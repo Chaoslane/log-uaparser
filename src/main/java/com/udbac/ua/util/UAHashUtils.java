@@ -25,7 +25,7 @@ public class UAHashUtils {
         }
     }
 
-    public static String hash(String uaString) throws UnsupportedlogException {
+    public static String hash(String uaString) throws HashIdException {
         byte[] sha1ed = DigestUtils.sha(uaString);
         String base64ed = Base64.encodeBase64String(sha1ed);
         String safeurl = base64ed.replace("+", "-")
@@ -33,7 +33,7 @@ public class UAHashUtils {
                 .replace("=", "")
                 .replaceAll("[-_]", "");
         if (safeurl.length() < 20) {
-            throw new UnsupportedlogException("Got hashid too short:" + safeurl);
+            throw new HashIdException("Got hashid too short:" + safeurl);
         } else return safeurl.substring(0, 20).replaceAll("[\r\n]", "");
     }
 
