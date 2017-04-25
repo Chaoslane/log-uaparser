@@ -2,6 +2,7 @@ package com.udbac.ua.entity;
 
 /**
  * Created by root on 2017/2/20.
+ * UAinfo 实体类 默认值
  */
 public class UAinfo {
     private String catalog = "Other";

@@ -11,7 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Created by root on 2017/3/17.
+ * 正则过滤输入文件
  */
 public class RegexFilter extends Configured implements PathFilter {
     private static Logger logger = Logger.getLogger(RegexFilter.class);

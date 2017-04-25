@@ -28,18 +28,22 @@ public class UAHashUtils {
     public static String hash(String uaString) throws HashIdException {
         byte[] sha1ed = DigestUtils.sha(uaString);
         String base64ed = Base64.encodeBase64String(sha1ed);
+        // 转为URL安全编码
         String safeurl = base64ed.replace("+", "-")
                 .replace("/", "_")
                 .replace("=", "")
+                // 转为定长且只有字母数字的编码
                 .replaceAll("[-_]", "");
         if (safeurl.length() < 20) {
             throw new HashIdException("Got hashid too short:" + safeurl);
+            // base64算法的结尾为 \r\n 去掉
         } else return safeurl.substring(0, 20).replaceAll("[\r\n]", "");
     }
 
     public static String parseUA(String uaStr) {
         String[] vs = uaStr.split("[^A-Za-z0-9_-]", -1);
         UAinfo uAinfo = new UAinfo();
+        // 爱奇艺、优酷使用自有的UAinfo串，因此需要单独识别
         if (vs.length > 0) {
             //优酷
             switch (vs[0]) {
@@ -93,7 +97,7 @@ public class UAHashUtils {
                     break;
                 }
                 default:
-                    //使用uap转换
+                    // 利用parser(https://github.com/ua-parser)组件，解析UA串
                     Client c = uapaser.parse(uaStr);
                     if ("Other".equals(c.userAgent.family)) {
                         uAinfo.setCatalog("Other");
@@ -114,11 +118,14 @@ public class UAHashUtils {
         }
 
         String uaInfoStr = uAinfo.toString();
+        //判断是否含有urlencode编码串，进行解析
         uaInfoStr = uaInfoStr.matches(".*(\\\\x[A-Za-z0-9]{2})+.*|.*(%[A-Za-z0-9]{2})+.*")
                 ? urlDecode(uaInfoStr) : uaInfoStr;
 
         if (StringUtils.isNotBlank(uaInfoStr)) {
+            // 去掉导致入库失败的特殊字符
             uaInfoStr = uaInfoStr.replace("+", " ").replaceAll("(\\\\x[A-Za-z0-9]{0,2})|\\\\|R%H|R%|%", "");
+            // 验证uainfo是否可入库
             String[] infos = uaInfoStr.split("\t", -1);
             if (infos.length == 8) {
                 boolean flag = true;
@@ -138,6 +145,7 @@ public class UAHashUtils {
 
     private static String urlDecode(String strUrl) {
         try {
+            // 转换C风格\x为%  转换多个%2525为%
             strUrl = strUrl.replace("\\x", "%").replace("%25", "%");
             return URLDecoder.decode(strUrl, "UTF-8");
         } catch (UnsupportedEncodingException | IllegalArgumentException e) {
@@ -158,6 +166,7 @@ public class UAHashUtils {
         }
     }
 
+    // 默认优酷
     private static UAinfo othYouku(String uaStr) {
         UAinfo othYouku = new UAinfo();
         othYouku.setCatalog("Youku_Other");
@@ -167,6 +176,7 @@ public class UAHashUtils {
         return othYouku;
     }
 
+    //默认爱奇艺
     private static UAinfo othIqiyi(String uaStr) {
         UAinfo othIqiyi = new UAinfo();
         othIqiyi.setCatalog("iQiyi_Other");

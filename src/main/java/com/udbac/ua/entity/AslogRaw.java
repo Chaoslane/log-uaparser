@@ -4,40 +4,45 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 /**
- * Created by root on 2017/4/24.
+ * Created by chaoslane on 2017/4/24.
+ * as日志实体类 原始字段
  */
 public class AslogRaw {
     private static final Logger logger = Logger.getLogger(AslogRaw.class);
 
+    /**
+     * 一行日志->原始的aslog实体，未解析各tokens
+     * 有效的as日志必须有合法的 adid adop，处理后仍不合法，则丢掉
+     * @param line 一行日志
+     * @return AslogRaw
+     */
     public static AslogRaw parseAslog(String line) {
-        if (StringUtils.isBlank(line)) {
-            return null;
-        }
+        if (StringUtils.isBlank(line)) return null;
         String[] tokens = line.split("\t", -1);
         int len = tokens.length;
-        AslogRaw aslog = null;
+        AslogRaw as;
         if (len == 10) {
-            aslog = new AslogRaw();
-            aslog.time = tokens[0];
-            aslog.msec = tokens[1];
-            aslog.addr = tokens[2];
-            aslog.xfwd = tokens[3];
-            aslog.adid = tokens[4];
-            aslog.aurl = tokens[5];
-            aslog.aarg = tokens[6];
-            aslog.areq = tokens[7];
-            aslog.uagn = tokens[8];
-            aslog.ckie = tokens[9];
-            if (StringUtils.isNotBlank(aslog.aurl)) {
-                String[] adop_adid = aslog.aurl.split("[,&]", -1);
-                aslog.adid = adop_adid[1];
+            as = new AslogRaw();
+            as.time = tokens[0];
+            as.msec = tokens[1];
+            as.addr = tokens[2];
+            as.xfwd = tokens[3];
+            as.adid = tokens[4];  //ADID有问题，均为空
+            as.aurl = tokens[5];
+            as.aarg = tokens[6];
+            as.areq = tokens[7];
+            as.uagn = tokens[8];
+            as.ckie = tokens[9];
+            if (StringUtils.isNotBlank(as.aurl)) {
+                String[] adop_adid = as.aurl.split("[,&]", -1);
+                as.adid = adop_adid[1];
                 switch (adop_adid[0]) {
                     case "/c":
-                        aslog.adop = "clk";
+                        as.adop = "clk";
                         break;
                     case "/i":
                     case "/t":
-                        aslog.adop = "imp";
+                        as.adop = "imp";
                         break;
                     default:
                         logger.warn("Unsupported log format Exception : bad operator :" + adop_adid[0]);
@@ -48,40 +53,40 @@ public class AslogRaw {
                 return null;
             }
         } else if (len == 11) {
-            aslog = new AslogRaw();
-            aslog.time = tokens[0];
-            aslog.msec = tokens[1];
-            aslog.addr = tokens[2];
-            aslog.xfwd = tokens[3];
-            aslog.adid = tokens[4];
-            aslog.aurl = tokens[5];
-            aslog.aarg = tokens[6];
-            aslog.areq = tokens[7];
-            aslog.uagn = tokens[8];
-            aslog.ckie = tokens[9];
-            aslog.auid = tokens[10];
-            if (StringUtils.isNotBlank(aslog.aurl)) {
-                String[] adop_adid = aslog.aurl.split("[,&]", -1);
+            as = new AslogRaw();
+            as.time = tokens[0];
+            as.msec = tokens[1];
+            as.addr = tokens[2];
+            as.xfwd = tokens[3];
+            as.adid = tokens[4];
+            as.aurl = tokens[5];
+            as.aarg = tokens[6];
+            as.areq = tokens[7];
+            as.uagn = tokens[8];
+            as.ckie = tokens[9];
+            as.auid = tokens[10];
+            if (StringUtils.isNotBlank(as.aurl)) {
+                String[] adop_adid = as.aurl.split("[,&]", -1);
                 switch (adop_adid[0]) {
                     case "/c":
-                        aslog.adop = "clk";
-                        aslog.adid = adop_adid[1];
+                        as.adop = "clk";
+                        as.adid = adop_adid[1];
                         break;
                     case "/i":
-                        aslog.adop = "imp";
-                        aslog.adid = adop_adid[1];
+                        as.adop = "imp";
+                        as.adid = adop_adid[1];
                         break;
                     case "/m":
-                        aslog.adop = "clk";
-                        aslog.adid = tokens[4];
+                        as.adop = "clk";
+                        as.adid = tokens[4];
                         break;
                     case "/s":
-                        aslog.adop = "clk";
-                        aslog.adid = tokens[4];
+                        as.adop = "clk";
+                        as.adid = tokens[4];
                         break;
                     case "/do":
-                        aslog.adop = "";
-                        aslog.adid = "";
+                        as.adop = "";
+                        as.adid = "";
                         break;
                     default:
                         logger.warn("Unsupported log format Exception, bad operator :" + adop_adid[0]);
@@ -89,40 +94,40 @@ public class AslogRaw {
                 }
             }
         } else if (len == 12) {
-            aslog = new AslogRaw();
-            aslog.time = tokens[0];
-            aslog.msec = tokens[1];
-            aslog.addr = tokens[2];
-            aslog.xfwd = tokens[3];
-            aslog.adid = tokens[4];
-            aslog.aurl = tokens[5];
-            aslog.aarg = tokens[6];
-            aslog.areq = tokens[7];
-            aslog.uagn = tokens[8];
-            aslog.ckie = tokens[9];
-            aslog.auid = tokens[10];
-            aslog.refr = tokens[11];
-            if (aslog.aurl.contains("/s") || aslog.aurl.contains("/s")) {
-                aslog.adop = "imp";
-            } else if (aslog.aurl.contains("/m") || aslog.aurl.contains("/c")) {
-                aslog.adop = "clk";
+            as = new AslogRaw();
+            as.time = tokens[0];
+            as.msec = tokens[1];
+            as.addr = tokens[2];
+            as.xfwd = tokens[3];
+            as.adid = tokens[4];
+            as.aurl = tokens[5];
+            as.aarg = tokens[6];
+            as.areq = tokens[7];
+            as.uagn = tokens[8];
+            as.ckie = tokens[9];
+            as.auid = tokens[10];
+            as.refr = tokens[11];
+            if (as.aurl.contains("/s") || as.aurl.contains("/s")) {
+                as.adop = "imp";
+            } else if (as.aurl.contains("/m") || as.aurl.contains("/c")) {
+                as.adop = "clk";
             } else {
-                aslog.adop = "";
+                as.adop = "";
             }
         } else {
             logger.warn("Unsupported log format, found " + tokens.length + " fields, AS log support 10/11/12 fields only.");
             return null;
         }
 
-        aslog.time = aslog.time.substring(0, 19).replace("T", " ");
-        aslog.adid = aslog.adid.replaceAll("\\\\x|\\\\", "");
+        as.time = as.time.substring(0, 19).replace("T", " ");
+        as.adid = as.adid.replaceAll("\\\\x|\\\\", "");
 
-        if (StringUtils.isBlank(aslog.adop)
-                || StringUtils.isBlank(aslog.adid) || aslog.adid.length() > 24) {
+        if (StringUtils.isBlank(as.adop)
+                || StringUtils.isBlank(as.adid) || as.adid.length() > 24) {
             logger.warn("Got Illegal adop or adid ");
             return null;
         }
-        return aslog;
+        return as;
     }
 
 

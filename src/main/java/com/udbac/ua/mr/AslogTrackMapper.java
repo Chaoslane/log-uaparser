@@ -34,6 +34,7 @@ public class AslogTrackMapper {
 
     static class TrackMapper extends Mapper<LongWritable, Text, Text, MapWritable> {
         private static Logger logger = Logger.getLogger(TrackMapper.class);
+        //ua字符串和ua解析结果的map
         private static Map<String, String> uakv = new HashMap<>(1024 * 1024);
         private static String date;
 
@@ -54,7 +55,7 @@ public class AslogTrackMapper {
             }
 
             try {
-                //获取解析的uainfo字符串
+                // 获取解析的uainfo字符串
                 String uaInfo = null;
                 String uagn = aslog.getUagn();
                 if (StringUtils.isNotBlank(uakv.get(uagn))) {
@@ -63,7 +64,7 @@ public class AslogTrackMapper {
                     uaInfo = UAHashUtils.parseUA(uagn);
                     uakv.put(uagn, uaInfo);
                 }
-
+                // hashid
                 String hwxid = UAHashUtils.hash(AslogHandler.getWxid(aslog));
                 String uaid = UAHashUtils.hash(uaInfo);
 
@@ -73,7 +74,7 @@ public class AslogTrackMapper {
                 mw.put(new Text("adid"), new Text(aslog.getAdid()));
                 mw.put(new Text("uaid"), new Text(uaid));
                 mw.put(new Text("uainfo"), new Text(uaInfo));
-
+                //使用 adop 切分数据为 imp clk
                 context.write(new Text(aslog.getAdop()), mw);
             } catch (HashIdException e) {
                 logger.warn(e);
@@ -83,7 +84,9 @@ public class AslogTrackMapper {
 
 
     static class TrackReducer extends Reducer<Text, MapWritable, NullWritable, Text> {
+        //mapreduce 多文件输出 切分imp clk
         private MultipleOutputs<NullWritable, Text> multipleOutputs;
+        //把所有的ua信息写入hashmap去重，由于切分了imp和clk，uainfo也会被切分到两个结果中，还需要在shell脚本中去重
         private static Map<String, String> uaInfoMap ;
 
         @Override
@@ -92,6 +95,11 @@ public class AslogTrackMapper {
             uaInfoMap = new HashMap<>();
         }
 
+        /**
+         * 输出格式为：wxid date_time adid uaid
+         * @param key imp || clk
+         * @param values MapWritable 容器
+         */
         @Override
         protected void reduce(Text key, Iterable<MapWritable> values, Context context) throws IOException, InterruptedException {
             for (MapWritable value : values) {
@@ -109,6 +117,7 @@ public class AslogTrackMapper {
         @Override
         protected void cleanup(Context context) throws IOException, InterruptedException {
             for (Map.Entry entry : uaInfoMap.entrySet()) {
+                // 一次输出所有uainfo
                 multipleOutputs.write(NullWritable.get(), new Text(entry.getKey() + "\t" + entry.getValue()), "uainfo");
             }
             multipleOutputs.close();
