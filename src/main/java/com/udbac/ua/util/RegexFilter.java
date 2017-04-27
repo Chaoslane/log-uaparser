@@ -25,10 +25,13 @@ public class RegexFilter extends Configured implements PathFilter {
 
             if (fs.isDirectory(path)) {
                 return true;
+                //空文件为32Bytes 会造成xz异常 过滤掉
+            } else if (fs.getFileStatus(path).getLen() < 100) {
+                return false;
             } else {
                 Matcher m = pattern.matcher(path.toString());
                 if (m.matches()) {
-                    logger.info(path.toString()+" is matched");
+                    logger.info(path.getName() + " is matched");
                 }
                 return m.matches();
             }
