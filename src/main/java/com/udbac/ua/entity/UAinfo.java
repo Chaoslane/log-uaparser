@@ -19,7 +19,8 @@ public class UAinfo {
     private String brand;
     private String model;
 
-    public UAinfo() {}
+    public UAinfo() {
+    }
 
     public UAinfo(String catalog, String browser, String browserver, String os, String osver, String device, String brand, String model) {
         this.catalog = catalog;
@@ -37,11 +38,11 @@ public class UAinfo {
         return parseUagn(uaStr).toString();
     }
 
-    public UAinfo parseUagn(String uaStr){
+    public UAinfo parseUagn(String uaStr) {
         UAinfo uAinfo;
         if (StringUtils.isBlank(uaStr)) {
             return other();
-        }else uAinfo = new UAinfo();
+        } else uAinfo = new UAinfo();
 
         //去除urldecode编码
         uaStr = uaStr.replaceAll("(\\\\x[A-Za-z0-9]{2}+)|(%[A-Za-z0-9]{2})+", "");
@@ -54,30 +55,30 @@ public class UAinfo {
                 case "Youku":
                 case "Tudou": {
                     String[] vs1 = uaStr.split("[;]", -1);
-                    if (vs1.length == 5) {
-                        uAinfo.catalog = "Youku";
-                        uAinfo.browser = vs1[0];
-                        uAinfo.browserver = vs1[1];
-                        uAinfo.os = vs1[2];
-                        uAinfo.osver = vs1[3];
-                        uAinfo.device = replaceIllegal(vs1[4]);
-                        uAinfo.brand = "";
-                        uAinfo.model = "";
+                    if (vs1.length == 6 || vs1.length == 5) {
+                        uAinfo.setCatalog("Youku");
+                        uAinfo.setBrowser(vs1[0]);
+                        uAinfo.setBrowser(vs1[1]);
+                        uAinfo.setOs(vs1[2]);
+                        uAinfo.setOsver(vs1[3]);
+                        uAinfo.setDevice(vs1[4]);
+                        uAinfo.setBrand("");
+                        uAinfo.setModel("");
                         //model 1...50
                         if (StringUtils.isNotBlank(vs1[4]) && vs1[4].length() < 50) {
-                            uAinfo.model =replaceIllegal(vs1[4]);
+                            uAinfo.setModel(vs1[4]);
                         }
                     } else if (vs1.length == 4) {
                         String[] vs2 = uaStr.split("[ ;/]", -1);
                         if (vs2.length == 6) {
-                            uAinfo.catalog = "Youku";
-                            uAinfo.browser = vs2[0];
-                            uAinfo.browserver = vs2[2] + "/" + vs2[3] + " " + vs2[1];
-                            uAinfo.os = vs2[4];
-                            uAinfo.osver = vs2[5];
-                            uAinfo.device = "";
-                            uAinfo.brand = "";
-                            uAinfo.model = "";
+                            uAinfo.setCatalog("Youku");
+                            uAinfo.setBrowser(vs2[0]);
+                            uAinfo.setBrowser(vs2[2] + "/" + vs2[3] + " " + vs2[1]);
+                            uAinfo.setOs(vs2[4]);
+                            uAinfo.setOsver(vs2[5]);
+                            uAinfo.setDevice("");
+                            uAinfo.setBrand("");
+                            uAinfo.setModel("");
                         }
                     } else uAinfo = othYouku(uaStr);
                     break;
@@ -86,23 +87,23 @@ public class UAinfo {
                 case "Cupid": {
                     String[] vs1 = uaStr.split("[;/]", -1);
                     if (vs1.length == 2) {
-                        uAinfo.catalog = "iQiyi";
-                        uAinfo.browser = vs1[0];
-                        uAinfo.browserver = vs1[1];
-                        uAinfo.os = "";
-                        uAinfo.osver = "";
-                        uAinfo.device = "";
-                        uAinfo.brand = "";
-                        uAinfo.model = "";
+                        uAinfo.setCatalog("iQiyi");
+                        uAinfo.setBrowser(vs1[0]);
+                        uAinfo.setBrowserver(vs1[1]);
+                        uAinfo.setOs("");
+                        uAinfo.setOsver("");
+                        uAinfo.setDevice("");
+                        uAinfo.setBrand("");
+                        uAinfo.setModel("");
                     } else if (vs1.length == 3) {
-                        uAinfo.catalog = "iQiyi";
-                        uAinfo.browser = vs1[0];
-                        uAinfo.browserver = vs1[2];
-                        uAinfo.os = vs1[1];
-                        uAinfo.osver = "";
-                        uAinfo.device = "";
-                        uAinfo.brand = "";
-                        uAinfo.model = "";
+                        uAinfo.setCatalog("iQiyi");
+                        uAinfo.setBrowser(vs1[0]);
+                        uAinfo.setBrowserver(vs1[2]);
+                        uAinfo.setOs(vs1[1]);
+                        uAinfo.setOsver("");
+                        uAinfo.setDevice("");
+                        uAinfo.setBrand("");
+                        uAinfo.setModel("");
                     } else uAinfo = othIqiyi(uaStr);
                     break;
                 }
@@ -120,26 +121,20 @@ public class UAinfo {
 
         UAinfo uAinfo = new UAinfo();
         if (null == c) return other();
-        uAinfo.catalog = "Other".equals(c.userAgent.family) ? "Other" : "Normal";
-        uAinfo.browser = StringUtils.trimToEmpty(c.userAgent.family);
+        setCatalog("Other".equals(c.userAgent.family) ? "Other" : "Normal");
 
-        uAinfo.browserver = buildVersion(c.userAgent.major, c.userAgent.minor, c.userAgent.patch);
-        uAinfo.os = StringUtils.trimToEmpty(c.os.family);
-        uAinfo.osver = buildVersion(c.os.major, c.os.minor, c.os.patch);
+        setBrowser(c.userAgent.family);
+        setBrowserver(buildVersion(c.userAgent.major, c.userAgent.minor, c.userAgent.patch));
 
-        uAinfo.device = replaceIllegal(c.device.family);
-        uAinfo.brand = replaceIllegal(c.device.brand);
-        uAinfo.model = replaceIllegal(c.device.model);
+        setOs(c.os.family);
+        setOsver(buildVersion(c.os.major, c.os.minor, c.os.patch));
+
+        setDevice(c.device.family);
+        setBrand(c.device.brand);
+        setModel(c.device.model);
         return uAinfo;
     }
 
-    private static String replaceIllegal(String str) {
-        if (null != str) {
-            str = StringUtils.trimToEmpty(
-                    str.replaceAll("[?;+%\\\\]", ""));
-        } else str = "";
-        return str;
-    }
 
     private static String buildVersion(String major, String minor, String patch) {
         if (StringUtils.isBlank(major)) {
@@ -162,12 +157,12 @@ public class UAinfo {
 
     // 默认优酷
     private static UAinfo othYouku(String uaStr) {
-        return new UAinfo("Youku_Other", uaStr, "", "Other", "", "Other", "", "");
+        return new UAinfo("Youku_Other","Other" , "", "Other", "", "Other", "", "");
     }
 
     //默认爱奇艺
     private static UAinfo othIqiyi(String uaStr) {
-        return new UAinfo("iQiyi_Other", uaStr, "", "Other", "", "Other", "", "");
+        return new UAinfo("iQiyi_Other", "Other", "", "Other", "", "Other", "", "");
     }
 
     @Override
@@ -207,5 +202,50 @@ public class UAinfo {
 
     public String getModel() {
         return model;
+    }
+
+    public void setCatalog(String catalog) {
+        this.catalog = catalog;
+    }
+
+    public void setBrowserver(String browserver) {
+        this.browserver = browserver;
+    }
+
+    public void setOsver(String osver) {
+        this.osver = osver;
+    }
+
+    public void setBrowser(String browser) {
+        this.browser = replaceIllegal(browser);
+    }
+
+    public void setOs(String os) {
+        this.os = replaceIllegal(os);
+    }
+
+    public void setDevice(String device) {
+        this.device = replaceIllegal(device);
+    }
+
+    public void setBrand(String brand) {
+        this.brand = replaceIllegal(brand);
+    }
+
+    public void setModel(String model) {
+        this.model = replaceIllegal(model);
+    }
+
+    /**
+     * 去掉uainfo中的特殊字符
+     */
+    private static String replaceIllegal(String str) {
+        if (null != str) {
+            if (str.length() < 50) {
+                str = StringUtils.trim(str.replaceAll("[?;+%\\\\]", " "));
+                return str;
+            }
+        }
+        return "";
     }
 }

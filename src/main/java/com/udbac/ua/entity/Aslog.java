@@ -4,7 +4,8 @@ import com.udbac.ua.util.LogParseException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,19 +29,18 @@ public class Aslog {
     private String auid;
     private String refr;
     private String adop;
-    private Map<String,String> infoMap;
 
     public Aslog() {}
+
+    public Aslog(String line) throws LogParseException {
+        this.parseAslog(line);
+    }
 
     /**
      * 一行日志->原始的aslog实体，未解析各tokens
      * 有效的as日志必须有合法的 adid adop，处理后仍不合法，则丢掉
      * @return Aslog
      */
-    public Aslog(String line) throws LogParseException {
-        parseAslog(line);
-    }
-
     private void parseAslog(String line) throws LogParseException {
         String[] tokens = line.split("\t", -1);
         int len = tokens.length;
@@ -142,8 +142,6 @@ public class Aslog {
                 || StringUtils.isBlank(this.adid) || this.adid.length() > 24) {
             throw new LogParseException("Got Illegal adop or adid ");
         }
-
-        this.infoMap = handleAurlAarg(this.aurl, this.aarg);
     }
 
     // 对于移动端代码，优先选用宏参数定义的IP地址、用户ID
@@ -242,7 +240,8 @@ public class Aslog {
         return adop;
     }
 
+    // 解析aurl aarg 中非结构化数据放入map
     public Map<String, String> getInfoMap() {
-        return infoMap;
+        return handleAurlAarg(this.aurl, this.aarg);
     }
 }

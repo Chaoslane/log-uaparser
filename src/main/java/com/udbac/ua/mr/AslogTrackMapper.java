@@ -13,6 +13,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
@@ -97,6 +98,7 @@ public class AslogTrackMapper {
 //            return matcher.matches();
 //        }
     }
+
 
     public static void main(String[] args) throws InterruptedException, IOException, ClassNotFoundException {
         long startTime = System.currentTimeMillis();
